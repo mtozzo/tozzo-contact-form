@@ -3,7 +3,7 @@
 Plugin Name: Tozzo Contact Form
 Plugin URI:  https://developer.wordpress.org/plugins/tozzo-contact-form/
 Description: A simple contact form that doesn't rely on external styles or CSS.
-Version:     0.01
+Version:     0.02
 Author:      Michael Tozzo
 Author URI:  https://michaeltozzo.com
 License:     GPL2
@@ -106,10 +106,16 @@ function tozzo_contact_init() {
     if (isset($_POST['tozzo_contact_form_action'])) {
         $valid_submission = true;
         $errors = [];
+		
+		$subject = 'New Contact Form Submission';
+		$email = 'xxxxxx@xxxx.com';
+		
+		if (tozzo_determine_if_probably_spam()) {
+			$subject = '⛔ [Probably SPAM] New Contact Form Submission';
+			$email = 'yyyyyy@yyyy.com';
+		}
+		
         $mail_message = "Contact Form Submission Details: <br />\n<br />\n<table>\n";
-
-        $subject = 'New Contact Form Submission';
-
         $mail_message .= '<tr><td nowrap="nowrap">Site: </td><td>' . tozzo_sanitize_string($_SERVER['HTTP_HOST']) . "</td></tr>\n";
 
         foreach($fields as $field) {
@@ -150,7 +156,7 @@ function tozzo_contact_init() {
             echo "</pre>";
         }*/           
 
-        $ret = wp_mail( $email = 'xxxxxx@xxxx.com', $subject, $message_text_for_user = $mail_message, 
+        $ret = wp_mail( $email, $subject, $message_text_for_user = $mail_message, 
             $headers = 'Content-type: text/html; charset=utf-8' . "\n");
 
         wp_redirect('/contact-form-thankyou?mt=1');
@@ -165,6 +171,42 @@ function tozzo_construct_field_name($field) {
 function tozzo_sanitize_string($str) {
     // return sanitize_text_field($str);
     return str_replace("\'", "'", sanitize_textarea_field($str));
+}
+
+function tozzo_determine_if_probably_spam() {
+	$fields = tozzo_contact_form_field_data();
+	$link_count = 0;
+	$banned_word_count = 0;
+	$banned_words = ['adult', 'free', 'dating', 'sites', 'sex', 'girls', 'girl', 'women', 'beautiful'];
+	
+	foreach($fields as $field) {
+		$field_name = tozzo_construct_field_name($field);
+		
+		$field_data = strtolower($_POST[$field_name]);
+		if (strpos($field_data, '#file_links') !== false) {
+			return true;
+		}
+		
+		if (strpos($field_data, 'http://') !== false) {
+			$link_count++;
+		}
+			
+		if (strpos($field_data, 'https://') !== false) {
+			$link_count++;
+		}
+		
+		foreach($banned_words as $banned_word) {
+			if (strpos($field_data, $banned_word) !== false) {
+				$banned_word_count++;
+			}
+		}
+		
+		if (strpos($field_data, 'explainer videos straight from jerusalem') !== false) {
+			return true;
+		}
+	}
+	
+	return ($link_count > 2) || ($banned_word_count > 7);
 }
  
 function tozzo_contact_form_field_data() {
