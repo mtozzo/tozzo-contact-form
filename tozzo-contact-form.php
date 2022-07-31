@@ -169,7 +169,6 @@ function tozzo_construct_field_name($field) {
 }
 
 function tozzo_sanitize_string($str) {
-    // return sanitize_text_field($str);
     return str_replace("\'", "'", sanitize_textarea_field($str));
 }
 
@@ -177,16 +176,35 @@ function tozzo_determine_if_probably_spam() {
 	$fields = tozzo_contact_form_field_data();
 	$link_count = 0;
 	$banned_word_count = 0;
-	$banned_words = ['adult', 'free', 'dating', 'sites', 'sex', 'girls', 'girl', 'women', 'beautiful'];
+
+    /****************************
+    * remember strtolower()!!!  *
+    ****************************/
+
+	$banned_words = [
+        'adult', 
+        'free', 
+        'dating', 
+        'sites', 
+        'sex', 
+        'girls', 
+        'girl', 
+        'women', 
+        'beautiful'
+    ];
+    $full_ban_words = [
+        'explainer videos straight from jerusalem',
+        'henryfus',
+        'eric jones',
+        'mail-online.dk',
+        '#file_links',
+        '.ru', '.mx',
+    ];
 	
 	foreach($fields as $field) {
 		$field_name = tozzo_construct_field_name($field);
-		
 		$field_data = strtolower($_POST[$field_name]);
-		if (strpos($field_data, '#file_links') !== false) {
-			return true;
-		}
-		
+
 		if (strpos($field_data, 'http://') !== false) {
 			$link_count++;
 		}
@@ -201,8 +219,10 @@ function tozzo_determine_if_probably_spam() {
 			}
 		}
 		
-		if (strpos($field_data, 'explainer videos straight from jerusalem') !== false) {
-			return true;
+        foreach($full_ban_words as $banned_word) {
+            if (strpos($field_data, strtolower($banned_word)) !== false) {
+                return true;
+            }
 		}
 	}
 	
