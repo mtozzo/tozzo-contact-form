@@ -3,18 +3,21 @@
 Plugin Name: Tozzo Contact Form
 Plugin URI:  https://developer.wordpress.org/plugins/tozzo-contact-form/
 Description: A simple contact form that doesn't rely on external styles or CSS.
-Version:     0.02
+Version:     0.03
 Author:      Michael Tozzo
 Author URI:  https://michaeltozzo.com
 License:     GPL2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: wporg
-Domain Path: /languages
 
 */
 
 function tozzo_contact_form_handler($atts, $content = null) {
     global $errors;
+    /*if (!in_array($_SERVER['REMOTE_ADDR'], ['192.0.188.119', '192.168.33.1'])) {
+        return '';
+    }*/
+
     extract(shortcode_atts(['class_prefix' => ''], $atts));
     $fields = tozzo_contact_form_field_data();
 
@@ -105,14 +108,16 @@ function tozzo_contact_init() {
 
     if (isset($_POST['tozzo_contact_form_action'])) {
         $valid_submission = true;
+        $probably_spam = false;
         $errors = [];
 		
 		$subject = 'New Contact Form Submission';
 		$email = 'xxxxxx@xxxx.com';
-		
-		if (tozzo_determine_if_probably_spam()) {
-			$subject = '⛔ [Probably SPAM] New Contact Form Submission';
+
+		if (tozzo_determine_if_probably_spam($reason)) {
+			$subject = '⛔ New Contact';
 			$email = 'yyyyyy@yyyy.com';
+            $probably_spam = true;
 		}
 		
         $mail_message = "Contact Form Submission Details: <br />\n<br />\n<table>\n";
@@ -143,6 +148,11 @@ function tozzo_contact_init() {
         $mail_message .= '<tr><td nowrap="nowrap">Sent at: </td><td>' . date('r') . "</td></tr>\n";
         $mail_message .= '<tr><td nowrap="nowrap">From page: </td><td>' . tozzo_sanitize_string($_SERVER['HTTP_REFERER']) . "</td></tr>\n";
         $mail_message .= '<tr><td nowrap="nowrap">Using: </td><td>' . tozzo_sanitize_string($_SERVER['HTTP_USER_AGENT']) . "</td></tr>\n";
+
+        if ($reason !== null) {
+            $mail_message .= '<tr><td nowrap="nowrap">Spam Reason: </td><td>' . $reason . "</td></tr>\n";
+        }
+
         $mail_message .= "</table>\n";
     }
 
@@ -156,8 +166,11 @@ function tozzo_contact_init() {
             echo "</pre>";
         }*/           
 
-        $ret = wp_mail( $email, $subject, $message_text_for_user = $mail_message, 
-            $headers = 'Content-type: text/html; charset=utf-8' . "\n");
+        $ret = wp_mail($email, $subject, $mail_message, 'Content-type: text/html; charset=utf-8' . "\n");
+
+        if (!$probably_spam) {
+            $ret = wp_mail('mtozzo@gmail.com', '[*] ' . $subject, $mail_message, 'Content-type: text/html; charset=utf-8' . "\n");
+        }
 
         wp_redirect('/contact-form-thankyou?mt=1');
         exit;
@@ -172,10 +185,10 @@ function tozzo_sanitize_string($str) {
     return str_replace("\'", "'", sanitize_textarea_field($str));
 }
 
-function tozzo_determine_if_probably_spam() {
+function tozzo_determine_if_probably_spam(&$reason = null) {
 	$fields = tozzo_contact_form_field_data();
-	$link_count = 0;
-	$banned_word_count = 0;
+	
+    $link_count = $banned_word_count = $intput_count = $word_count = 0;
 
     /****************************
     * remember strtolower()!!!  *
@@ -183,27 +196,164 @@ function tozzo_determine_if_probably_spam() {
 
 	$banned_words = [
         'adult', 
-        'free', 
+        'bad',
+        'beautiful',
+        'best',
         'dating', 
-        'sites', 
-        'sex', 
-        'girls', 
+        'easy',
+        'financial',
+        'free',
+        'free', 
+        'future',
         'girl', 
+        'girls', 
+        'google',
+        'guarantees',
+        'independence',
+        'instrument',
+        'investment',
+        'making', 
+        'massager',
+        'money',
+        'neck',
+        'remove',
+        'reviews',
+        'rich',
+        'robot', 
+        'sex', 
+        'shipping',
+        'sites', 
         'women', 
-        'beautiful'
+        'world\'s',
+        'yelp',
+        'free shipping',
+        'healthy', 
+        'lifestyle',
+        'bot',
+        'internet',
+        'earn',
+        'click',
+        'dollar',
+        'capital',
+        'posture',
+        'ad',
+        'usd',
+        'followers',
+        'marketing',
     ];
+
     $full_ban_words = [
-        'explainer videos straight from jerusalem',
+        'yabrowser',
+        'click here',
+        'bit.ly',
+        'cutt.ly',
+        'contact form blasts',
+        'gsa',
+        'adcreative.ai',
+        'high quality traffic',
+        'explainer video',
         'henryfus',
         'eric jones',
         'mail-online.dk',
         '#file_links',
-        '.ru', '.mx',
+        'dandydemo.com',
+        'crypto',
+        'anonrerve',
+        'thawking.store',
+        'expresscapitalcorp.com',
+        'express capital',
+        'epap', 
+        'seo',
+        'elevating',
+        'bespoke',
+        'sleepl.ink',
+        'rokl.ink',
+        ' ai ',
+        ' ai?',
+        'leads',
+        'free traffic',
+        'noticed something',
+        'down range',
+        'virtual assistance',
+        'growth service',
+        'a few problems affecting',
+        'nextdayworkingcapital.com',
+        'working capital',
+        'influencers',
+        'business reviews',
+        'if you are interested',
+        'conventional advertising',
+        'time and money they can save',
+        'performance problems',
+        'marketing video',
+        'small business loan',
+        'unsubscribe',
+        'dating service',
+        'foolproof money making system',
+        'figure business',
+        'reading this message',
+        'phil stewart',
+        'contact form',
+        'capitalfundingstore.com',
+        'are you looking for',
+        'website designing',
+        'business loan',
+        'fast cash',
+        'social media marketing manager',
+        'current website',
+        'backlinks',
+        'video producer',
+        'need any videos',
+        'online business',
+        'sales funnel',
+        'just had to drop a message',
+        'holloman',
+        'pva account',
+        'data entry services',
+        'online courses',
+        'webdesignservices111@outlook.com',
+        '.sale',
+        'webflow',
+        'venture capital',
+        'bange',
+        'dont-reply.me',
+        'exclusive opportunity',
+        'dedicated video player',
+        'without any questions',
+        'gaza',
+        'zeep.ly',
+        'formblastmarketing.top',
+        '.shop',
+        'ppv',
+        'vps',
+        'profitparadigm',
+        'raining videos',
+        'speed issue',
+        'idle connection',
+        'surplus network',
+        't.ly/',
+        'viagra',
+        'allen-law.ca',
     ];
+
+    $dict_path = plugin_dir_path( __FILE__ ) . 'aspell.dat';
+    $dict_words = file($dict_path);
+    $dict_words = array_map('trim', $dict_words);
+
+    $last_field_data = null;
+    $duplicate_data_count = 0;
 	
 	foreach($fields as $field) {
 		$field_name = tozzo_construct_field_name($field);
 		$field_data = strtolower($_POST[$field_name]);
+
+        if ($last_field_data !== null) {
+            if ($field_data === $last_field_data) {
+                $duplicate_data_count++;
+            }
+        }
+
+        $last_field_data = $field_data;
 
 		if (strpos($field_data, 'http://') !== false) {
 			$link_count++;
@@ -212,21 +362,52 @@ function tozzo_determine_if_probably_spam() {
 		if (strpos($field_data, 'https://') !== false) {
 			$link_count++;
 		}
-		
-		foreach($banned_words as $banned_word) {
-			if (strpos($field_data, $banned_word) !== false) {
-				$banned_word_count++;
-			}
-		}
-		
+
+        if ($field['wordscan']) {
+            $input_words = preg_split('/\s+/i', trim(preg_replace('/\W/', ' ', strtolower($field_data))));
+
+            foreach($input_words as $input_word) {
+                $intput_count++;
+
+                if (in_array($input_word, $dict_words)) {
+                    $word_count++;
+                }
+            }
+        }
+
+        foreach($banned_words as $banned_word) {
+            if (strpos($field_data, $banned_word) !== false) {
+                $banned_word_count++;
+            }
+        }
+        
         foreach($full_ban_words as $banned_word) {
+            // echo "checking {$banned_word} in:\n{$field_data}\n";
             if (strpos($field_data, strtolower($banned_word)) !== false) {
+                $reason = "full banned word found ({$banned_word}) in {$field_name}";
                 return true;
             }
-		}
+        }
 	}
+
+    if (strpos(strtolower($_SERVER['HTTP_USER_AGENT']), 'yabrowser') !== false) {
+        $reason = "yabrowser found";
+        return true;
+    }
+
+    $percentage = (($word_count / $intput_count) * 100);
+
+    if ($link_count > 2) {
+        $reason = 'too many links';
+    } elseif ($banned_word_count > 7) {
+        $reason = 'too many banned words';
+    } elseif ($percentage < 50) {
+        $reason = "under 50% of content is words ( {$word_count} / {$intput_count} ) dict_words: " . count($dict_words);
+    } elseif ($duplicate_data_count >= 3) {
+        $reason = 'too many duplicate data';
+    }
 	
-	return ($link_count > 2) || ($banned_word_count > 7);
+	return ($link_count > 2) || ($banned_word_count > 7) || ($percentage < 50) || ($duplicate_data_count >= 3);
 }
  
 function tozzo_contact_form_field_data() {
@@ -236,42 +417,50 @@ function tozzo_contact_form_field_data() {
             'name' => 'Name',
             'type' => 'text',
             'required' => true,
+            'wordscan' => false,
         ],
         [
             'id' => 'email',
             'name' => 'Email address',
             'type' => 'email',
             'required' => true,
+            'wordscan' => false,
         ],
         [
             'id' => 'phone',
             'name' => 'Phone number',
             'type' => 'text',
             'required' => true,
+            'wordscan' => false,
         ],
         [
             'id' => 'best_time',
             'name' => 'Best time to reach you',
             'type' => 'text',
             'required' => true,
+            'wordscan' => false,
         ],
         [
             'id' => 'how_did',
             'name' => 'How did you hear about us',
             'type' => 'text',
             'required' => false,
+            'wordscan' => false,
         ],
         [
             'id' => 'subject',
+
             'name' => 'Subject',
             'type' => 'text',
             'required' => true,
+            'wordscan' => true,
         ],
         [
             'id' => 'message',
             'name' => 'Message',
             'type' => 'textarea',
             'required' => true,
+            'wordscan' => true,
         ],
     ];
 }
@@ -279,3 +468,4 @@ function tozzo_contact_form_field_data() {
 add_action( 'init', 'tozzo_contact_init', 55);
 add_shortcode('tozzo_contact_form', 'tozzo_contact_form_handler');
 
+// find | xargs -I {} pdfimages -j {} {}-extracted-images
