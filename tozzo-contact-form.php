@@ -78,7 +78,7 @@ function tozzo_contact_form_handler($atts, $content = null) {
             case 'radio': 
                 $the_form .= '<div id="tozzo_contact_' . $field['id'] . '">';
                 foreach($field['options'] as $option) {
-                    $the_form .= '<div nowrap="nowrap"><input type="radio" name="tozzo_contact_' . $field['id'] . '" id="' . str_replace(' ', '_', strtolower($option)) . '" value="' . $option . '"' . $required_attr . ' />
+                    $the_form .= '<div><input type="radio" name="tozzo_contact_' . $field['id'] . '" id="' . str_replace(' ', '_', strtolower($option)) . '" value="' . $option . '"' . $required_attr . ' />
                     <label for="' .str_replace(' ', '_', strtolower($option)) . '">' . $option . '</label></div>';
                 }
                 $the_form .= "</div>\n";
@@ -132,7 +132,7 @@ function tozzo_contact_init() {
             } elseif (!empty($_POST[$field_name])) { 
                 $mail_message .= '<tr><td nowrap="nowrap">' . $field['name'] . ': </td><td>' . tozzo_sanitize_string($_POST[$field_name]) . "</td></tr>\n";
                 if ('tozzo_contact_subject' == $field_name) {
-                    $subject .= ' - ' . tozzo_sanitize_string($_POST[$field_name]);
+                    $subject .= ' - ' . tozzo_sanitize_string(preg_replace('/\s+/i', ' ', $_POST[$field_name]));
                 }
             }
         }
@@ -188,7 +188,7 @@ function tozzo_sanitize_string($str) {
 function tozzo_determine_if_probably_spam(&$reason = null) {
 	$fields = tozzo_contact_form_field_data();
 	
-    $link_count = $banned_word_count = $intput_count = $word_count = 0;
+    $link_count = $banned_word_count = $input_count = $word_count = 0;
 
     /****************************
     * remember strtolower()!!!  *
@@ -333,6 +333,8 @@ function tozzo_determine_if_probably_spam(&$reason = null) {
         'surplus network',
         't.ly/',
         'viagra',
+        'funding options',
+        'youtube',
         'allen-law.ca',
     ];
 
@@ -367,7 +369,7 @@ function tozzo_determine_if_probably_spam(&$reason = null) {
             $input_words = preg_split('/\s+/i', trim(preg_replace('/\W/', ' ', strtolower($field_data))));
 
             foreach($input_words as $input_word) {
-                $intput_count++;
+                $input_count++;
 
                 if (in_array($input_word, $dict_words)) {
                     $word_count++;
@@ -395,14 +397,18 @@ function tozzo_determine_if_probably_spam(&$reason = null) {
         return true;
     }
 
-    $percentage = (($word_count / $intput_count) * 100);
+    $percentage = 100;
+    if ($input_count > 0) {
+        $percentage = (($word_count / $input_count) * 100);    
+    }
+    
 
     if ($link_count > 2) {
         $reason = 'too many links';
     } elseif ($banned_word_count > 7) {
         $reason = 'too many banned words';
     } elseif ($percentage < 50) {
-        $reason = "under 50% of content is words ( {$word_count} / {$intput_count} ) dict_words: " . count($dict_words);
+        $reason = "under 50% of content is words ( {$word_count} / {$input_count} ) dict_words: " . count($dict_words);
     } elseif ($duplicate_data_count >= 3) {
         $reason = 'too many duplicate data';
     }
@@ -449,7 +455,6 @@ function tozzo_contact_form_field_data() {
         ],
         [
             'id' => 'subject',
-
             'name' => 'Subject',
             'type' => 'text',
             'required' => true,
