@@ -114,6 +114,7 @@ function tozzo_contact_init() {
 		$subject = 'New Contact Form Submission';
 		$email = 'xxxxxx@xxxx.com';
 
+        $reason = null;
 		if (tozzo_determine_if_probably_spam($reason)) {
 			$subject = '⛔ New Contact';
 			$email = 'yyyyyy@yyyy.com';
@@ -336,6 +337,7 @@ function tozzo_determine_if_probably_spam(&$reason = null) {
         'funding options',
         'youtube',
         'allen-law.ca',
+        'bestaitools',
     ];
 
     $dict_path = plugin_dir_path( __FILE__ ) . 'aspell.dat';
@@ -398,7 +400,7 @@ function tozzo_determine_if_probably_spam(&$reason = null) {
     }
 
     $percentage = 100;
-    if ($input_count > 0) {
+    if ($input_count >= 0) {
         $percentage = (($word_count / $input_count) * 100);    
     }
     
@@ -470,6 +472,7 @@ function tozzo_contact_form_field_data() {
     ];
 }
 
+date_default_timezone_set('America/Toronto');
 add_action( 'init', 'tozzo_contact_init', 55);
 add_shortcode('tozzo_contact_form', 'tozzo_contact_form_handler');
 
