@@ -23,6 +23,20 @@ function tozzo_contact_form_handler($atts, $content = null) {
 
     $the_form = '
     <style>
+    --wp--preset--color--background: #F3EFEC;
+    --wp--preset--color--foreground: #171511;
+    --wp--preset--color--foreground-alt: #090703;
+    --wp--preset--font-family--inter: "Inter", sans-serif;
+    --wp--custom--typography--line-height--normal: 1.6;
+
+    --wp--style--root--padding-top: 0;
+    --wp--style--root--padding-right: var(--wp--preset--spacing--30);
+    --wp--style--root--padding-bottom: 0;
+    --wp--style--root--padding-left: var(--wp--preset--spacing--30);    
+
+    --wp--preset--font-size--normal: 16px;
+    --wp--preset--font-size--huge: 42px;    
+
     .tozzo_contact_form {
         width: 340px;
     }
@@ -40,8 +54,38 @@ function tozzo_contact_form_handler($atts, $content = null) {
         width: 100%;
         height: 150px;
     }
-    input[type="text"] {
+    input[type="text"], input[type="email"], textarea {
+        border: 1px solid #D63637;
+        display: block;
         width: 100%;
+        box-sizing: border-box;
+        font-family: inherit;
+        font-style: normal;
+        font-weight: 400;
+        margin: 0;
+
+        padding: calc(0.667em + 1px);
+        width: 100%;
+        background-color: var(--wp--preset--color--background);
+        color: var(--wp--preset--color--foreground);
+        border-color: inherit;        
+    }
+    .tozzo_contact_form_submit {
+        background-color: var(--wp--custom--elements--button--color--background);
+        color: var(--wp--custom--elements--button--color--text);
+        border-radius: var(--wp--custom--elements--button--border--radius);
+        border-width: 0;
+        font-family: inherit;
+        font-size: inherit;
+        font-weight: var(--wp--custom--typography--font-weight--medium);
+        line-height: inherit;
+        padding-top: calc(0.667em + 2px);
+        padding-right: calc(1.333em + 2px);
+        padding-bottom: calc(0.667em + 2px);
+        padding-left: calc(1.333em + 2px);
+        text-decoration: none;
+        cursor: pointer;
+        margin-top: 1rem;
     }
     </style>    
     <form method="post" id="tozzo_contact_form" class="tozzo_contact_form" action="" validate="validate">
@@ -477,3 +521,17 @@ add_action( 'init', 'tozzo_contact_init', 55);
 add_shortcode('tozzo_contact_form', 'tozzo_contact_form_handler');
 
 // find | xargs -I {} pdfimages -j {} {}-extracted-images
+
+// add_action('init', function () {
+//     register_block_type('tozzo_contact/form', [
+//         // 'attributes' => [
+//         //     'formId' => [
+//         //         'type' => 'number',
+//         //     ],
+//         // ],
+//         // 'render_callback' => function ($attrs) {
+//         //     return myplugin_render_form($attrs['formId'] ?? null);
+//         // },
+//         'render_callack' => 'tozzo_contact_form_handler',
+//     ]);
+// });
