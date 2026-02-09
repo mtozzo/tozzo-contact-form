@@ -147,11 +147,24 @@ $the_form .= '
     return $the_form;
 }
 
+// function tozzo_view_init() {
+//     if (get_query_var('contact_view')) { 
+//         print_r([$_GET, $_POST]);
+//         die();
+//     }
+// }
+
 function tozzo_contact_init() {
     global $errors;
+    global $wpdb;
+
     if (empty($errors)) {
         $errors = [];
     }
+
+    // Single gate for all untested new code on this branch. Real traffic from
+    // non-debug IPs will never run the additions below.
+    $is_debug = tozzo_is_debug_ip();
 
     $fields = tozzo_contact_form_field_data();
     $valid_submission = false;
@@ -211,7 +224,60 @@ function tozzo_contact_init() {
         $mail_message .= "</table>\n";
     }
 
+    // Encrypted DB recording is untested new code; only run it for a real
+    // submission AND for debug/testing IPs. This also fixes the page-load
+    // bug where every non-submission request inserted an empty row + token.
+    if ($valid_submission && $is_debug) {
+      // echo "<pre>subject: {$subject}<br>\nmail_message: {$mail_message}<br>\n";
+
+      [$encrypted_mail_message, $nonce] = encrypt_message($mail_message);
+
+      // print_r(['encrypted_mail_message' => $encrypted_mail_message, 'nonce' => $nonce]);
+
+      $token = bin2hex(random_bytes(32));
+      $submission_id = 99;
+      $expires = gmdate('Y-m-d H:i:s', time() + (3600 * 24 * 7)); // 24h * 7
+
+      $res = $wpdb->insert($wpdb->prefix . 'wp_tozzo_contact_form_submissions', [
+          'payload' => $encrypted_mail_message,
+          'nonce' => $nonce,
+      ]);
+
+      if ($wpdb->last_error) {
+          echo $wpdb->last_error;
+      }    
+
+      $submission_id = $wpdb->insert_id;
+
+      $res = $wpdb->insert($wpdb->prefix . 'wp_tozzo_contact_form_tokens', [
+        'token' => $token,
+        'submission_id' => $submission_id,
+        'expires_at' => $expires
+      ]);
+
+      // print_r(['res' => $res]);
+
+      if ($res) {
+
+      } else {
+          if ($wpdb->last_error) {
+              echo $wpdb->last_error;
+          }    
+      }
+
+      // exit;
+    }
+
     if ($valid_submission) {
+
+        $allowed_ips = array_map('trim', explode(',', TOZZO_CONTACT_FORM_DEBUG_IPS));
+        if (in_array($_SERVER['REMOTE_ADDR'], $allowed_ips)) {
+            echo "<pre>";
+            print_r([$email, $subject, $mail_message]);
+            echo "</pre>";
+            exit;
+        }
+
         /*echo "mail_message is: $mail_message";
 
         add_action( 'wp_mail_failed', 'onMailError', 10, 1 );
@@ -223,12 +289,23 @@ function tozzo_contact_init() {
 
         $ret = wp_mail($email, $subject, $mail_message, 'Content-type: text/html; charset=utf-8' . "\n");
 
+        if ($ret) {
+            echo 'wp_mail returned truthy';
+        } else {
+            echo 'wp_mail returned falsy';
+        }
+
         if (!$probably_spam) {
             $ret = wp_mail(TOZZO_CONTACT_FORM_SPAM_EMAIL, '[*] ' . $subject, $mail_message, 'Content-type: text/html; charset=utf-8' . "\n");
         }
 
-        wp_redirect('/contact-form-thankyou?mt=1');
-        exit;
+        if ($ret) {
+            echo 'wp_mail returned truthy 2';
+        } else {
+            echo 'wp_mail returned falsy 2';
+        }
+
+        // wp_redirect('/contact-form-thankyou?mt=1');
     }
 }
 
@@ -238,6 +315,18 @@ function tozzo_construct_field_name($field) {
 
 function tozzo_sanitize_string($str) {
     return str_replace("\'", "'", sanitize_textarea_field($str));
+}
+
+// Returns true when the request comes from a debug/testing IP listed in
+// TOZZO_CONTACT_FORM_DEBUG_IPS. This is the single gate for all untested new
+// code on this branch, so it never runs for real traffic.
+function tozzo_is_debug_ip() {
+    if (empty(TOZZO_CONTACT_FORM_DEBUG_IPS)) {
+        return false;
+    }
+
+    $allowed_ips = array_map('trim', explode(',', TOZZO_CONTACT_FORM_DEBUG_IPS));
+    return in_array(@$_SERVER['REMOTE_ADDR'], $allowed_ips);
 }
 
 function tozzo_determine_if_probably_spam(&$reason = null) {
@@ -571,10 +660,65 @@ function tozzo_contact_form_field_data() {
     ];
 }
 
+function encrypt_message($message) {
+    $key = CONTACT_FORM_KEY; // 32 bytes
+    //$key = sodium_crypto_secretbox_keygen(); // can be used to generate a new CONTACT_FORM_KEY
+
+    $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+    $encrypted_message = sodium_crypto_secretbox($message, $nonce, $key);
+
+    return [$encrypted_message, $nonce];
+}
+
 date_default_timezone_set('America/Toronto');
 add_action( 'init', 'tozzo_contact_init', 55);
 add_shortcode('tozzo_contact_form', 'tozzo_contact_form_handler');
 
+
+add_action('init', function () {
+    if (!isset($_GET['cf_view'], $_GET['t'])) return;
+
+    // Untested new functionality — only for debug/testing IPs.
+    if (!tozzo_is_debug_ip()) return;
+
+    echo '<pre>';
+
+    global $wpdb;
+    $token = $_GET['t'];
+
+    echo "you're in<br>\n";
+
+    $output_token = bin2hex(random_bytes(32));
+    echo $output_token;
+
+
+    $table = $wpdb->prefix . 'wp_tozzo_contact_form_tokens';
+    $row = $wpdb->get_row($wpdb->prepare("
+        SELECT * FROM {$table}
+        WHERE token = %s AND used = 0 AND expires_at > NOW()
+    ", $token));
+    // wp_contact_tokens
+
+    if ($wpdb->last_error) {
+        echo $wpdb->last_error;
+    }    
+
+    echo $wpdb->last_query;
+
+    if (!$row) {
+        wp_die('Link expired or invalid.');
+    }
+
+    // fetch submission
+    //$submission = get_submission($row->submission_id);
+
+
+    // // mark used (optional)
+    // $wpdb->update('wp_contact_tokens', ['used'=>1], ['token'=>$token]);
+
+    // echo render_submission_html($submission);
+    // exit;
+});
 // find | xargs -I {} pdfimages -j {} {}-extracted-images
 
 // add_action('init', function () {
@@ -590,3 +734,22 @@ add_shortcode('tozzo_contact_form', 'tozzo_contact_form_handler');
 //         'render_callack' => 'tozzo_contact_form_handler',
 //     ]);
 // });
+
+// CREATE TABLE wp_2uuz9k_wp_tozzo_contact_form_tokens (
+//   token CHAR(64) PRIMARY KEY,
+//   submission_id BIGINT,
+//   expires_at DATETIME,
+//   used TINYINT DEFAULT 0
+// );
+
+// wp_q2d3mn_terms
+
+// CREATE TABLE wp_2uuz9k_wp_tozzo_contact_form_submissions (
+//   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+//   created_at DATETIME NOT NULL,
+//   ip VARBINARY(16) NOT NULL,
+//   payload BLOB NOT NULL,
+//   nonce VARBINARY(24) NOT NULL
+// );
+
+// modified by Bionic
