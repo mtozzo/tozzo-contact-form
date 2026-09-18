@@ -3,7 +3,7 @@
 Plugin Name: Tozzo Contact Form
 Plugin URI:  https://developer.wordpress.org/plugins/tozzo-contact-form/
 Description: A simple contact form that doesn't rely on external styles or CSS.
-Version:     0.03
+Version:     0.04
 Author:      Michael Tozzo
 Author URI:  https://michaeltozzo.com
 License:     GPL2
@@ -14,8 +14,8 @@ Text Domain: wporg
 
 function tozzo_contact_form_handler($atts, $content = null) {
     global $errors;
-    /*if (!in_array($_SERVER['REMOTE_ADDR'], ['192.0.188.119', '192.168.33.1'])) {
-        return '';
+    /*if (in_array($_SERVER['REMOTE_ADDR'], ['192.0.188.119', '192.168.33.1'])) {
+        // return 'I see you';
     }*/
 
     extract(shortcode_atts(['class_prefix' => ''], $atts));
@@ -98,7 +98,7 @@ function tozzo_contact_form_handler($atts, $content = null) {
     foreach($fields as $field) {
         $required_attr = '';
 
-        $the_form .= '<div class="tozzo_contact_form_field_wrapper"><label for="tozzo_contact_' . $field['id'] . '">' . $field['name'] . ': ';
+        $the_form .= '<div class="tozzo_contact_form_field_wrapper"><label for="tozzo_contact_' . $field['id'] . '">' . $field['name'] . ' ';
         if (!empty($field['required'])) {
             $the_form .= '<span class="required">*</span>';
             $required_attr = ' required="required"';
@@ -176,8 +176,12 @@ function tozzo_contact_init() {
                 $errors[] = $field['id'];
             } elseif (!empty($_POST[$field_name])) { 
                 $mail_message .= '<tr><td nowrap="nowrap">' . $field['name'] . ': </td><td>' . tozzo_sanitize_string($_POST[$field_name]) . "</td></tr>\n";
-                if ('tozzo_contact_subject' == $field_name) {
+                if ('tozzo_contact_subject' === $field_name) {
                     $subject .= ' - ' . tozzo_sanitize_string(preg_replace('/\s+/i', ' ', $_POST[$field_name]));
+                }
+
+                if ('tozzo_contact_name' === $field_name) {
+                    $subject .= ' from "' . tozzo_sanitize_string(preg_replace('/\s+/i', ' ', $_POST[$field_name])) . '"';
                 }
             }
         }
@@ -382,6 +386,59 @@ function tozzo_determine_if_probably_spam(&$reason = null) {
         'youtube',
         'allen-law.ca',
         'bestaitools',
+        'maxreviewflow.com',
+        'oj james',
+        'ow.ly',
+        'promote',
+        'free tool',
+        '.compute.amazonaws.com',
+        'entrepreneurial',
+        'cpms',
+        'digital advertising',
+        'free shipping',
+        'potential investment opportunity',
+        'tinyurl.com',
+        'websubmitterpro',
+        'sendproud',
+        'reviewremoval',
+        'topshelfpromotion.com',
+        'free giveaway',
+        'social media specialist',
+        'suniljaindvg',
+        'systeme.io',
+        'prominent investment',
+        'fpsbench',
+        'hard loan funding',
+        'dobyfinancial.com',
+        'no contracts required',
+        'cancel whenever',
+        'blankslatelife.com',
+        'melotto',
+        'traffic service',
+        'ai-optimized',
+        'rohtopharmacy.org',
+        'loan offer',
+        'charity mission',
+        'orphan children',
+        'marketingaged.com',
+        'seeking financing for business expansion',
+        'dedicated remote support',
+        'ai-driven',
+        'digital pharmacies',
+        'fas.st',
+        'backend operations',
+        'daily store management',
+        'recovermypenalty.com',
+        'letstokvideo.com',
+        'found some major errors',
+        'analyzes competitor ads',
+        'news about email updates',
+        'am interested in your latest',
+        'mailing list',
+        'pbn',
+        'restorix',
+        'special offers',
+        'please send me news and updates by email',
     ];
 
     $dict_path = plugin_dir_path( __FILE__ ) . 'aspell.dat';
@@ -486,25 +543,11 @@ function tozzo_contact_form_field_data() {
             'wordscan' => false,
         ],
         [
-            'id' => 'best_time',
-            'name' => 'Best time to reach you',
-            'type' => 'text',
-            'required' => true,
-            'wordscan' => false,
-        ],
-        [
             'id' => 'how_did',
-            'name' => 'How did you hear about us',
+            'name' => 'How did you hear about us?',
             'type' => 'text',
             'required' => false,
             'wordscan' => false,
-        ],
-        [
-            'id' => 'subject',
-            'name' => 'Subject',
-            'type' => 'text',
-            'required' => true,
-            'wordscan' => true,
         ],
         [
             'id' => 'message',
