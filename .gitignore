@@ -1,0 +1,4 @@
+# Tozzo Contact Form - local configuration
+# config.php holds your real settings and must stay out of git.
+# Copy config.sample.php to config.php and fill in your values.
+config.php

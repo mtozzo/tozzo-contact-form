@@ -12,6 +12,9 @@ Text Domain: wporg
 
 */
 
+// Load configuration (recipient email addresses) from a separate file.
+require_once plugin_dir_path(__FILE__) . 'config.php';
+
 function tozzo_contact_form_handler($atts, $content = null) {
     global $errors;
     /*if (in_array($_SERVER['REMOTE_ADDR'], ['192.0.188.119', '192.168.33.1'])) {
@@ -156,12 +159,12 @@ function tozzo_contact_init() {
         $errors = [];
 		
 		$subject = 'New Contact Form Submission';
-		$email = 'xxxxxx@xxxx.com';
+		$email = TOZZO_CONTACT_FORM_EMAIL;
 
         $reason = null;
 		if (tozzo_determine_if_probably_spam($reason)) {
 			$subject = '⛔ New Contact';
-			$email = 'yyyyyy@yyyy.com';
+			$email = TOZZO_CONTACT_FORM_SPAM_EMAIL;
             $probably_spam = true;
 		}
 		
@@ -218,7 +221,7 @@ function tozzo_contact_init() {
         $ret = wp_mail($email, $subject, $mail_message, 'Content-type: text/html; charset=utf-8' . "\n");
 
         if (!$probably_spam) {
-            $ret = wp_mail('mtozzo@gmail.com', '[*] ' . $subject, $mail_message, 'Content-type: text/html; charset=utf-8' . "\n");
+            $ret = wp_mail(TOZZO_CONTACT_FORM_SPAM_EMAIL, '[*] ' . $subject, $mail_message, 'Content-type: text/html; charset=utf-8' . "\n");
         }
 
         wp_redirect('/contact-form-thankyou?mt=1');
