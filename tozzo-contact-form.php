@@ -12,12 +12,15 @@ Text Domain: wporg
 
 */
 
-// Load configuration (recipient email addresses) from a separate file.
+// Load configuration (recipient emails + allowed IPs) from a separate file.
 require_once plugin_dir_path(__FILE__) . 'config.php';
 
 function tozzo_contact_form_handler($atts, $content = null) {
     global $errors;
-    /*if (in_array($_SERVER['REMOTE_ADDR'], ['192.0.188.119', '192.168.33.1'])) {
+    // Allowed IPs come from config.php (TOZZO_CONTACT_FORM_DEBUG_IPS), a
+    // comma-separated list, so they never live in this git-tracked file.
+    $allowed_ips = array_map('trim', explode(',', TOZZO_CONTACT_FORM_DEBUG_IPS));
+    /*if (in_array($_SERVER['REMOTE_ADDR'], $allowed_ips)) {
         // return 'I see you';
     }*/
 
