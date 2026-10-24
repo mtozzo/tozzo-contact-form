@@ -450,6 +450,7 @@ function tozzo_determine_if_probably_spam(&$reason = null) {
         'restorix',
         'special offers',
         'please send me news and updates by email',
+        'kari allen law p.c.',
     ];
 
     $dict_path = plugin_dir_path( __FILE__ ) . 'aspell.dat';
