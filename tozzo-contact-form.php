@@ -242,7 +242,12 @@ function tozzo_sanitize_string($str) {
 
 function tozzo_determine_if_probably_spam(&$reason = null) {
 	$fields = tozzo_contact_form_field_data();
-	
+
+    if ('test' === strtolower($_POST[tozzo_construct_field_name(tozzo_contact_form_field_data()['name'])])) {
+        $reason = "test name found";
+        return true;
+    }
+
     $link_count = $banned_word_count = $input_count = $word_count = 0;
 
     /****************************
@@ -527,35 +532,35 @@ function tozzo_determine_if_probably_spam(&$reason = null) {
  
 function tozzo_contact_form_field_data() {
     return [
-        [
+        'name' => [
             'id' => 'name',
             'name' => 'Name',
             'type' => 'text',
             'required' => true,
             'wordscan' => false,
         ],
-        [
+        'email' => [
             'id' => 'email',
             'name' => 'Email address',
             'type' => 'email',
             'required' => true,
             'wordscan' => false,
         ],
-        [
+        'phone' => [
             'id' => 'phone',
             'name' => 'Phone number',
             'type' => 'text',
             'required' => true,
             'wordscan' => false,
         ],
-        [
+        'how_did' => [
             'id' => 'how_did',
             'name' => 'How did you hear about us?',
             'type' => 'text',
             'required' => false,
             'wordscan' => false,
         ],
-        [
+        'message' => [
             'id' => 'message',
             'name' => 'Message',
             'type' => 'textarea',
